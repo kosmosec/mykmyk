@@ -1,0 +1,71 @@
+workflow:
+  tasks:
+    - name: scope
+      type: filesystem
+      run:
+        input: ./hosts
+    - name: ST-scan
+      type: nmap
+      source: scope
+      concurrency: 3
+      run:
+        args:
+          - "-sT"
+          - "-vvv"
+          - "-Pn"
+          - "--open"
+          - "-oA"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: SV-scan
+      type: nmap
+      source: ST-scan
+      concurrency: 3
+      run:
+        args:
+          - "-sV"
+          - "-sC"
+          - "-vvv"
+          - "-Pn"
+          - "-A"
+          - "--version-all"
+          - "--open"
+          - "-oA"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: RMI-scan
+      type: nmap
+      source: ST-scan
+      concurrency: 3
+      run:
+        args:
+          - "-sT"
+          - "-vvv"
+          - "-Pn"
+          - "--script=+rmi-dumpregistry"
+          - "--open"
+          - "-oA"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: httpx-scan
+      type: httpx
+      source: ST-scan
+      concurrency: 3
+      waitFor: RMI-scan
+      run:
+        args:
+          - "-tech"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: TestingExec
+      type: exec
+      run:
+        description: "Install a VM and collect its ID"
+        command: "./echo.sh"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'

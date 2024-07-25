@@ -1,0 +1,157 @@
+outputFile: ./mykmyk-output.html
+workflow:
+  tasks:
+    - name: scope
+      type: filesystem
+      active: true
+      useCache: true
+      run:
+        input: ./hosts
+    - name: ST-scan
+      type: nmap
+      active: true
+      useCache: true
+      source: scope
+      concurrency: 3
+      run:
+        args:
+          - "-sT"
+          - "-vvv"
+          - "-Pn"
+          - "--open"
+          - "--max-rate"
+          - "1000"
+          - "-p-"
+          - "-oA"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: SV-scan
+      type: nmap
+      source: ST-scan
+      active: true
+      useCache: true
+      concurrency: 4
+      run:
+        args:
+          - "-sV"
+          - "-sC"
+          - "-vvv"
+          - "-Pn"
+          - "-A"
+          - "--max-rate"
+          - "1000"
+          - "--version-all"
+          - "--open"
+          - "-oA"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: RMI-scan
+      type: nmap
+      source: ST-scan
+      active: true
+      useCache: true
+      concurrency: 3
+      run:
+        args:
+          - "-sT"
+          - "-vvv"
+          - "-Pn"
+          - "--script=+rmi-dumpregistry"
+          - "--open"
+          - "--max-rate"
+          - "1000"
+          - "-oA"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: httpx-scan
+      type: httpx
+      source: ST-scan
+      concurrency: 3
+      active: true
+      useCache: true
+      run:
+        args:
+          - "-td"
+          - "-vhost"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: nuclei-scan
+      type: nuclei
+      source: httpx-scan
+      active: true
+      useCache: true
+      concurrency: 3
+      #waitFor: httpx-scan
+      run:
+        args:
+          - "-etags"
+          - "wordpress,dos,fuzz"
+          - "-ud"
+          - "/opt/mykmyk-bundle/nuclei-templates"
+          - "-rl"
+          - "3"
+          - "-c"
+          - "5"
+          - "-ni"
+          - "-duc"
+          - "-nc"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: ffuf-scan
+      type: ffuf
+      source: httpx-scan
+      active: true
+      useCache: true
+      concurrency: 3
+      #waitFor: httpx-scan
+      run:
+        args:
+          - "-w"
+          - "/opt/mykmyk-bundle/wordlist/raft-large-directories.txt"
+          - "-ac"
+          - "-rate"
+          - "300"
+          - "-v"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: ssl-scan
+      type: sslscan
+      source: httpx-scan
+      active: true
+      useCache: true
+      concurrency: 3
+      #waitFor: httpx-scan
+      run:
+        args:
+          - "--iana-names"
+    - name: nc-fingerprint
+      type: nc
+      source: ST-scan
+      active: true
+      useCache: true
+      concurrency: 5
+      #waitFor: httpx-scan
+      run:
+        args:
+          - "<>()&;id"
+          - "aa()"
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
+    - name: smb-check
+      type: smb
+      source: ST-scan
+      active: true
+      useCache: true
+      concurrency: 3
+      #waitFor: httpx-scan
+      run:
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'
