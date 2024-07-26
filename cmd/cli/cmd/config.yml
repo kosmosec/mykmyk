@@ -129,6 +129,7 @@ workflow:
       #waitFor: httpx-scan
       run:
         args:
+          - "--no-colour"
           - "--iana-names"
     - name: nc-fingerprint
       type: nc
