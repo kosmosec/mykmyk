@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -228,6 +229,26 @@ func getURLs(output string) []string {
 		}
 	}
 	urlList = cutTechInfo(urlList)
+	urlListWithPort := resolvePortIfEmpty(urlList)
+	return urlListWithPort
+}
+
+func resolvePortIfEmpty(liveUrls []string) []string {
+	urlList := make([]string, 0)
+	for _, lu := range liveUrls {
+		u, _ := url.Parse(lu)
+		parsedUrlString := u.String()
+		if u.Port() == "" {
+			var port string
+			if u.Scheme == "https" {
+				port = "443"
+			} else if u.Scheme == "http" {
+				port = "80"
+			}
+			parsedUrlString = fmt.Sprintf("%s:%s", u.String(), port)
+		}
+		urlList = append(urlList, parsedUrlString)
+	}
 	return urlList
 }
 
