@@ -17,6 +17,7 @@ type (
 		Active      bool        `yaml:"active,omitempty"`
 		UseCache    bool        `yaml:"useCache,omitempty"`
 		Source      string      `yaml:"source,omitempty"`
+		Port        int         `yaml:"port,omitempty"`
 		Concurrency int         `yaml:"concurrency,omitempty"`
 		WaitFor     string      `yaml:"waitFor,omitempty"`
 		Run         interface{} `yaml:"run,omitempty"`

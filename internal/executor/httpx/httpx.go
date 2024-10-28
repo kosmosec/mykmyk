@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// TODO: wyciagnij wspolne rzeczy do jeden struktury. To wszystko sie wszedzie powtarza
+// TODO: common struct for executors
 type Httpx struct {
 	Type          api.TaskType
 	Name          string

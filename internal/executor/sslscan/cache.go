@@ -16,7 +16,10 @@ func (c *cache) get(target string, key string) (string, []string, bool) {
 	if err != nil {
 		return "", nil, false
 	}
-	reportPaths := findFileStartsWith("./"+target, "sslReport")
+	if len(output) == 0 {
+		return "", nil, false
+	}
+	reportPaths := findFileStartsWith("./"+target, key)
 	return string(output), reportPaths, true
 }
 

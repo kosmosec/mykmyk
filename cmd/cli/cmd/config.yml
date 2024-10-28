@@ -131,6 +131,19 @@ workflow:
         args:
           - "--no-colour"
           - "--iana-names"
+    - name: ssl-scan-psql
+      type: sslscan
+      source: ST-scan
+      port: 5432
+      active: true
+      useCache: true
+      concurrency: 3
+      #waitFor: httpx-scan
+      run:
+        args:
+          - "--no-colour"
+          - "--iana-names"
+          - "--starttls-psql"
     - name: nc-fingerprint
       type: nc
       source: ST-scan

@@ -23,6 +23,7 @@ type SSLScan struct {
 	Type          api.TaskType
 	Name          string
 	Source        string
+	Port          int
 	Concurrency   int
 	prefix        string
 	waitForSignal chan bool
@@ -51,7 +52,6 @@ func (s *SSLScan) Run(ctx context.Context, in interface{}, db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-
 	s.args = task.Args
 
 	resultCh := make(chan scanResult, s.Concurrency)
@@ -74,10 +74,15 @@ func (s *SSLScan) Run(ctx context.Context, in interface{}, db *sql.DB) error {
 				})
 				limiter <- true
 				wg.Add(1)
-				target, err := getHost(msg.Targets[0])
-				if err != nil {
-					resultCh <- scanResult{target: target, err: err}
-					return
+				var target string
+				if len(msg.Ports) == 0 {
+					target, err = getHost(msg.Targets[0])
+					if err != nil {
+						resultCh <- scanResult{target: target, err: err}
+						return
+					}
+				} else {
+					target = msg.Targets[0]
 				}
 				go func(ctx context.Context, target string, msg model.Message) {
 					defer func() {
@@ -119,6 +124,7 @@ func (s *SSLScan) New(task api.Task, sns *sns.SNS, creds credsmanager.Credential
 		Type:          task.Type,
 		Name:          task.Name,
 		Source:        task.Source,
+		Port:          task.Port,
 		Concurrency:   task.Concurrency,
 		waitFor:       task.WaitFor,
 		isActive:      task.Active,
@@ -228,7 +234,7 @@ func (s *SSLScan) scanTarget(target string, msg model.Message, db *sql.DB) (stri
 			return "", nil, err
 		}
 	}
-	result, pathsToReport, err := scan(target, msg.Targets, s.args, db, s.Name)
+	result, pathsToReport, err := scan(target, msg.Targets, msg.Ports, s.Port, s.args, db, s.Name)
 	if err != nil {
 		return "", nil, err
 	}

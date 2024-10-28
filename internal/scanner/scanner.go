@@ -26,7 +26,7 @@ import (
 )
 
 func Scan(ctx context.Context, cfg api.Config) error {
-
+	ctx, cancelCtx := context.WithCancel(ctx)
 	tasks := make([]abstract.Executor, 0)
 	tasksRunMap := make(map[string]api.Task)
 
@@ -36,9 +36,12 @@ func Scan(ctx context.Context, cfg api.Config) error {
 
 	sigs := make(chan os.Signal, 1)
 	cleanup := make(chan bool)
+	forceCanceled := make(chan bool)
 	signal.Notify(sigs, syscall.SIGINT)
 	go func() {
 		<-sigs
+		forceCanceled <- true
+		cancelCtx()
 		fmt.Println("[!] Aborted!")
 		<-cleanup
 		os.Exit(1)
@@ -73,6 +76,7 @@ func Scan(ctx context.Context, cfg api.Config) error {
 	go func() {
 		for {
 			if err := ctx.Err(); err != nil {
+				<-forceCanceled
 				fmt.Println(err)
 				prettyOutput(cfg.OutputFile, tasks)
 				cleanup <- true
@@ -170,7 +174,9 @@ func firstNmapTaskName(tasks []api.Task) string {
 func addConsumersToTopics(tasks []abstract.Executor, sns *sns.SNS) error {
 	for i := range tasks {
 		if tasks[i].HasSource() && tasks[i].IsActive() {
-
+			if !isSourceExist(tasks[i].GetSource(), tasks) {
+				return errors.Errorf("The task %s has a source %s which not exists", tasks[i].GetName(), tasks[i].GetSource())
+			}
 			if !isSourceOfTaskIsActive(tasks[i], tasks) {
 				return errors.Errorf("The task %s has a inactive source %s", tasks[i].GetName(), tasks[i].GetSource())
 			}
@@ -184,6 +190,15 @@ func addConsumersToTopics(tasks []abstract.Executor, sns *sns.SNS) error {
 		}
 	}
 	return nil
+}
+
+func isSourceExist(currentTask string, tasks []abstract.Executor) bool {
+	for _, t := range tasks {
+		if currentTask == t.GetName() {
+			return true
+		}
+	}
+	return false
 }
 
 func isSourceOfTaskIsActive(currentTask abstract.Executor, tasks []abstract.Executor) bool {
