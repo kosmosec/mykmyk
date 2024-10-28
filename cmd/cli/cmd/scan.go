@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/user"
 
 	"github.com/kosmosec/mykmyk/internal/api"
 	"github.com/kosmosec/mykmyk/internal/scanner"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -40,17 +40,16 @@ func NewScan() *cobra.Command {
 func applyConfig(cfgPath string) (api.Config, error) {
 	var cfg api.Config
 	if cfgPath == "" {
-		currentDir, err := os.Getwd()
-		if err != nil {
-			return api.Config{}, err
+		currentDir := os.Getenv("PWD")
+		if currentDir == "" {
+			return api.Config{}, errors.Errorf("No PWD in the ENV.")
 		}
 		cfgPath = fmt.Sprintf("%s/%s", currentDir, api.DefaultConfigName)
 		if _, err := os.Stat(cfgPath); err != nil {
-			user, err := user.Current()
-			if err != nil {
-				return api.Config{}, err
+			homeDirectory := os.Getenv("HOME")
+			if homeDirectory == "" {
+				return api.Config{}, errors.Errorf("No HOME in the ENV.")
 			}
-			homeDirectory := user.HomeDir
 			cfgPath = fmt.Sprintf("%s/.config/mykmyk/%s", homeDirectory, api.DefaultConfigName)
 		}
 	}
