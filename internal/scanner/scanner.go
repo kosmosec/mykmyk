@@ -8,8 +8,10 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -31,6 +33,16 @@ func Scan(ctx context.Context, cfg api.Config) error {
 	sns := sns.New()
 	creds := credsmanager.New()
 	creds.RequestForCredentials()
+
+	sigs := make(chan os.Signal, 1)
+	cleanup := make(chan bool)
+	signal.Notify(sigs, syscall.SIGINT)
+	go func() {
+		<-sigs
+		fmt.Println("[!] Aborted!")
+		<-cleanup
+		os.Exit(1)
+	}()
 
 	for _, task := range cfg.Workflow.Tasks {
 		concreteExecutor, found := executor.Registered[task.Type]
@@ -58,7 +70,16 @@ func Scan(ctx context.Context, cfg api.Config) error {
 	createWaitForConnection(tasks)
 
 	var wg sync.WaitGroup
-
+	go func() {
+		for {
+			if err := ctx.Err(); err != nil {
+				fmt.Println(err)
+				prettyOutput(cfg.OutputFile, tasks)
+				cleanup <- true
+				return
+			}
+		}
+	}()
 	for _, t := range tasks {
 		wg.Add(1)
 		go func(e abstract.Executor) {
