@@ -11,6 +11,7 @@ import (
 	"github.com/kosmosec/mykmyk/internal/executor/nc"
 	"github.com/kosmosec/mykmyk/internal/executor/nmap"
 	"github.com/kosmosec/mykmyk/internal/executor/nuclei"
+	"github.com/kosmosec/mykmyk/internal/executor/rdp"
 	"github.com/kosmosec/mykmyk/internal/executor/smb"
 	"github.com/kosmosec/mykmyk/internal/executor/sslscan"
 	"github.com/kosmosec/mykmyk/internal/sns"
@@ -31,4 +32,5 @@ var Registered = map[api.TaskType]Creator{
 	api.Nc:             &nc.Nc{},
 	api.Smb:            &smb.Smb{},
 	api.SSLScan:        &sslscan.SSLScan{},
+	api.Rdp:            &rdp.Rdp{},
 }

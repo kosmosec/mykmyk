@@ -169,3 +169,15 @@ workflow:
         outputs:
           - name: name
             jsonPath: '$[*].id'
+    - name: rdp-check
+      type: rdp
+      source: ST-scan
+      active: true
+      useCache: true
+      port: 3389
+      concurrency: 3
+      #waitFor: httpx-scan
+      run:
+        outputs:
+          - name: name
+            jsonPath: '$[*].id'

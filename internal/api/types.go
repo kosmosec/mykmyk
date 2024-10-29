@@ -12,4 +12,5 @@ const (
 	Nc             TaskType = "nc"
 	Smb            TaskType = "smb"
 	SSLScan        TaskType = "sslscan"
+	Rdp            TaskType = "rdp"
 )
